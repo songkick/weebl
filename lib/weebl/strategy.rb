@@ -3,41 +3,30 @@ module Weebl
   class Strategy
     class << self
       def [](name)
-        @registry[name].new
-      end
-      
-      def register(name, klass)
-        @registry ||= {}
-        @registry[name] = klass
+        class_name = name.to_s.gsub(/(?:^|_)([a-z])/) { $1.upcase }
+        const_get(class_name).new
       end
     end
   end
   
-  class None < Strategy
-    def attempt(setup, on_success)
-      connection = setup.call
-      if connection
-        on_success.call(connection)
-      else
-        raise NotAvailable.new
-      end
+  class Strategy::None < Strategy
+    def attempt(setup)
+      setup.call or raise NotAvailable.new
     end
   end
   
-  class Periodic < Strategy
+  class Strategy::Periodic < Strategy
     INTERVAL = 10
-    def attempt(setup, on_success)
+    
+    def attempt(setup)
       connection = nil
       until connection
         connection = setup.call
         sleep(INTERVAL) unless connection
       end
-      on_success.call(connection)
+      connection
     end
   end
-  
-  Strategy.register :none,     None
-  Strategy.register :periodic, Periodic
   
 end
 

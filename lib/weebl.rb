@@ -7,9 +7,9 @@ module Weebl
   autoload :Mongo,    ROOT + '/weebl/mongo'
   autoload :Strategy, ROOT + '/weebl/strategy'
   
-  def yield_with_retries(on_success, strategy_type, &setup)
+  def with_retries(strategy_type, &block)
     strategy = Strategy[strategy_type]
-    strategy.attempt(setup, on_success)
+    strategy.attempt(block)
   end
   
 end

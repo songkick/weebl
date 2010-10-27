@@ -8,14 +8,15 @@ module Weebl
       @options = options
     end
     
-    def with_connection(&block)
-      yield_with_retries(block, @options[:retry]) do
+    def with_connection
+      with_retries(@options[:retry]) do
         hosts.each do |host|
           next if connection_ok?
           @connection = make_connection(host)
         end
         @connection
       end
+      yield @connection
     end
     
   private
@@ -32,6 +33,8 @@ module Weebl
       @connection.database_names
       true
     rescue ::Mongo::ConnectionFailure
+      @connection.close
+      @connection = nil
       false
     end
     
