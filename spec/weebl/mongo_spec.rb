@@ -2,38 +2,40 @@ require 'spec_helper'
 require 'mongo'
 
 describe Weebl::Mongo do
-  before do
-    @mongo = Helper::MongoPair.new(:left => 7000, :right => 7001)
-  end
+  HOSTS = [['localhost', 7000], ['localhost', 7001]]
   
-  after do
-    @mongo.shutdown
-  end
+  let(:mongo_pair) { Helper::MongoPair.new(:left => 7000, :right => 7001) }
   
-  describe ".stable_connection" do
-    before do
-      @hosts = [ {:host => 'localhost', :port => 7000},
-                 {:host => 'localhost', :port => 7001} ]
+  context "read-only, no retries" do
+    let(:client) { Weebl::Mongo.new(:hosts => HOSTS, :read_only => true, :retry => :none) }
+    
+    context "when Mongo is down" do
+      it "throws errors when you try to read" do
+        lambda {
+          client.with_connection { |conn| conn.db('test') }
+        }.should raise_error(Weebl::NotAvailable)
+      end
     end
     
-    it "returns a Mongo::Connection" do
-      Weebl::Mongo.stable_connection(@hosts).should be_kind_of(::Mongo::Connection)
-    end
-    
-    it "lets you save documents" do
-      connection = Weebl::Mongo.stable_connection(@hosts)
-      connection.db('test')['test_set'].insert(:hello => 'world')
-    end
-    
-    context "with a document in the database" do
+    context "when there's Mongo pair up" do
       before do
-        connection = Weebl::Mongo.stable_connection(@hosts)
-        connection.db('test')['test_set'].insert(:hello => 'world')
+        mongo_pair.startup
       end
       
-      it "lets you retrieve a document from the database" do
-        connection = Weebl::Mongo.stable_connection(@hosts)
-        connection.db('test')['test_set'].find_one['hello'].should == 'world'
+      after do
+        mongo_pair.shutdown
+      end
+      
+      context "and there is data in it" do
+        before do
+          conn = Weebl::Mongo.stable_connection(HOSTS)
+          conn.db('test')['test_set'].insert('hello' => 'world')
+        end
+        
+        it "yields a connection that you can read from" do
+          document = client.with_connection { |conn| conn.db('test')['test_set'].find_one }
+          document['hello'].should == 'world'
+        end
       end
     end
   end
