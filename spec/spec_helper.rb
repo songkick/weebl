@@ -3,7 +3,7 @@ require 'fileutils'
 SPEC_DIR = File.dirname(File.expand_path(__FILE__))
 TMP_DIR  = File.join(SPEC_DIR, '..', 'tmp')
 
-trap('INT') { FileUtils.rm_rf(TMP_DIR) }
+trap('INT') { FileUtils.rm_rf(TMP_DIR) ; exit }
 
 require File.join(SPEC_DIR, '..', 'lib', 'weebl')
 

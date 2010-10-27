@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'mongo'
 
 describe 'spec_helper' do
   before do
