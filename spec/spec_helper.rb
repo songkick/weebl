@@ -32,6 +32,21 @@ module Helper
       %w[left right].each { |side| FileUtils.rm_rf(File.join(TMP_DIR, side)) }
       @procs = nil
     end
+    
+    def master_connection
+      ports = [:left, :right].map(&@config.method(:[]))
+      connection, index = nil, 0
+      while connection.nil?
+        begin
+          port = ports[index]
+          connection = ::Mongo::Connection.new('localhost', port.to_i)
+        rescue => e
+          index = (index + 1) % ports.size
+          sleep 2
+        end
+      end
+      connection
+    end
   end
   
   class Daemon

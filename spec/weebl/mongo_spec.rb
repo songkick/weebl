@@ -7,7 +7,7 @@ describe Weebl::Mongo do
   let(:mongo_pair) { Helper::MongoPair.new(:left => 7000, :right => 7001) }
   
   context "read-only, no retries" do
-    let(:client) { Weebl::Mongo.new(:hosts => HOSTS, :read_only => true, :retry => :none) }
+    let(:client) { Weebl::Mongo.new(:hosts => HOSTS, :retry => :none) }
     
     context "when Mongo is down" do
       it "throws errors when you try to read" do
@@ -18,17 +18,12 @@ describe Weebl::Mongo do
     end
     
     context "when there's Mongo pair up" do
-      before do
-        mongo_pair.startup
-      end
-      
-      after do
-        mongo_pair.shutdown
-      end
+      before { mongo_pair.startup  }
+      after  { mongo_pair.shutdown }
       
       context "and there is data in it" do
         before do
-          conn = Weebl::Mongo.stable_connection(HOSTS)
+          conn = mongo_pair.master_connection
           conn.db('test')['test_set'].insert('hello' => 'world')
         end
         
