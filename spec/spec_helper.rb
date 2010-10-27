@@ -34,7 +34,7 @@ module Helper
     end
     
     def master_connection
-      ports = [:left, :right].map(&@config.method(:[]))
+      ports = @config.values
       connection, index = nil, 0
       while connection.nil?
         begin
@@ -46,6 +46,12 @@ module Helper
         end
       end
       connection
+    end
+    
+    def shutdown_master
+      master_side = @config.index(master_connection.port)
+      @procs[master_side].kill 'INT'
+      sleep 5
     end
   end
   

@@ -8,11 +8,11 @@ module Weebl
     
     def with_connection
       hosts.each do |host|
-        next if @connection
+        next if connection_ok?
         @connection = make_and_verify_connection(host)
       end
       if @connection
-        yield @connection
+        yield(@connection) if block_given?
       else
         raise NotAvailable.new("Could not connect to MongoDB -- #{ hosts.inspect }")
       end
