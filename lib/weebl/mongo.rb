@@ -2,28 +2,26 @@ require 'mongo'
 module Weebl
   
   class Mongo
+    include Weebl
+    
     def initialize(options = {})
       @options = options
     end
     
-    def with_connection
-      hosts.each do |host|
-        next if connection_ok?
-        @connection = make_and_verify_connection(host)
-      end
-      if @connection
-        yield(@connection) if block_given?
-      else
-        raise NotAvailable.new("Could not connect to MongoDB -- #{ hosts.inspect }")
+    def with_connection(&block)
+      yield_with_retries(block, @options[:retry]) do
+        hosts.each do |host|
+          next if connection_ok?
+          @connection = make_connection(host)
+        end
+        @connection
       end
     end
     
   private
     
-    def make_and_verify_connection(host)
-      connection = ::Mongo::Connection.new(host[0].to_s, host[1].to_i)
-      connection.database_names
-      connection
+    def make_connection(host)
+      ::Mongo::Connection.new(host[0].to_s, host[1].to_i)
     rescue ::Mongo::ConnectionFailure
       nil
     end

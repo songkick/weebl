@@ -37,7 +37,7 @@ describe Weebl::Mongo do
         
         context "and the master goes down when the client has a connection to it" do
           before do
-            client.with_connection
+            client.with_connection { }
             sleep 5 # replication lag much?
             mongo_pair.shutdown_master
           end
@@ -50,6 +50,28 @@ describe Weebl::Mongo do
             end
           end
         end
+      end
+    end
+  end
+  
+  context "with periodic retries" do
+    let(:client) { Weebl::Mongo.new(:hosts => HOSTS, :retry => :periodic) }
+    
+    context "when Mongo is down" do
+      before do
+        @start_time = Time.now
+        Helper.ensure_reactor_running
+        EM.add_timer(20) { mongo_pair.startup }
+      end
+      
+      after { mongo_pair.shutdown }
+      
+      it "blocks until Mongo comes up" do
+        client.with_connection do |conn|
+          conn.db('test').should_not be_nil
+          @elapsed = Time.now - @start_time
+        end
+        @elapsed.should > 20
       end
     end
   end

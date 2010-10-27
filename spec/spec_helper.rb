@@ -1,9 +1,8 @@
 require 'fileutils'
+require 'eventmachine'
 
 SPEC_DIR = File.dirname(File.expand_path(__FILE__))
 TMP_DIR  = File.join(SPEC_DIR, '..', 'tmp')
-
-trap('INT') { FileUtils.rm_rf(TMP_DIR) ; exit }
 
 require File.join(SPEC_DIR, '..', 'lib', 'weebl')
 
@@ -13,6 +12,11 @@ RSpec.configure do |config|
 end
 
 module Helper
+  def self.ensure_reactor_running
+    Thread.new { EM.run unless EM.reactor_running? }
+    sleep 0.1 until EM.reactor_running?
+  end
+  
   class MongoPair
     def initialize(config)
       @config = config
