@@ -1,45 +1,28 @@
 require 'mongo'
 module Weebl
   
-  class Mongo
-    include Weebl
-    
-    def initialize(options = {})
-      @options = options
+  class Mongo < Fallible
+    def get_connection
+      @options[:hosts].each do |host|
+        @connection ||= make_connection(host)
+      end
+      @connection
     end
     
-    def with_connection
-      with_retries(@options[:retry]) do
-        hosts.each do |host|
-          next if connection_ok?
-          @connection = make_connection(host)
-        end
-        @connection
-      end
-      yield @connection
+    def exception_type
+      ::Mongo::ConnectionFailure
+    end
+    
+    def on_fail(exception)
+      @connection = nil
     end
     
   private
     
     def make_connection(host)
       ::Mongo::Connection.new(host[0].to_s, host[1].to_i)
-    rescue ::Mongo::ConnectionFailure
+    rescue exception_type
       nil
-    end
-    
-    # simplest read we can do to find out if Mongo is up
-    def connection_ok?
-      return false if @connection.nil?
-      @connection.database_names
-      true
-    rescue ::Mongo::ConnectionFailure
-      @connection.close
-      @connection = nil
-      false
-    end
-    
-    def hosts
-      @options[:hosts]
     end
   end
   

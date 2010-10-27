@@ -30,10 +30,13 @@ module Helper
       }
     end
     
+    def clean
+      %w[left right].each { |side| FileUtils.rm_rf(File.join(TMP_DIR, side)) }
+    end
+    
     def shutdown
       return unless @procs
       @procs.each { |side, proc| proc.kill 'INT' }
-      %w[left right].each { |side| FileUtils.rm_rf(File.join(TMP_DIR, side)) }
       @procs = nil
     end
     
@@ -46,7 +49,7 @@ module Helper
           connection = ::Mongo::Connection.new('localhost', port.to_i)
         rescue => e
           index = (index + 1) % ports.size
-          sleep 2
+          sleep 0.2
         end
       end
       connection
