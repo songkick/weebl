@@ -28,22 +28,27 @@ module Weebl
     INTERVAL = 10
     
     def run(&task)
-      repeat_until_good do
-        connection = repeat_until_good { @fallible.get_connection }
+      repeat_until(:complete) do
+        connection = repeat_until(:result) { @fallible.get_connection }
         task.call(connection)
-        true
       end
     end
     
-    def repeat_until_good(&block)
-      result = nil
-      until result
+    def repeat_until(expectation, &block)
+      result, complete = nil, false
+      
+      done = (expectation == :result) ?
+             lambda { not result.nil? } :
+             lambda { complete }
+      
+      until done[]
         begin
           result = block.call
+          complete = true
         rescue @fallible.exception_type => e
           @fallible.on_fail(e)
         end
-        sleep(INTERVAL) unless result
+        sleep(INTERVAL) unless done[]
       end
       result
     end

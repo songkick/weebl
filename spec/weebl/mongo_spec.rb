@@ -31,10 +31,11 @@ describe Weebl::Mongo do
       end
       
       it "yields a connection that you can read from" do
-        client.with_connection do |conn|
+        document = client.with_connection do |conn|
           collection = conn.db('test')['test_set']
-          collection.find_one['hello'].should == 'world'
+          collection.find_one
         end
+        document['hello'].should == 'world'
       end
       
       context "and the master goes down when the client has a connection to it" do
@@ -140,10 +141,11 @@ describe Weebl::Mongo do
       end
       
       it "yields a connection that you can read from" do
-        client.with_connection do |conn|
+        document = client.with_connection do |conn|
           collection = conn.db('test')['test_set']
-          collection.find_one['hello'].should == 'world'
+          collection.find_one
         end
+        document['hello'].should == 'world'
       end
       
       context "and Mongo goes down during a block" do
