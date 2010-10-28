@@ -3,7 +3,7 @@ module Weebl
   
   class Mongo < Fallible
     def get_connection
-      @options[:hosts].each do |host|
+      hosts.each do |host|
         @connection ||= make_connection(host)
       end
       @connection

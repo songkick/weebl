@@ -1,0 +1,80 @@
+= Weebl
+
+Aren't you sick of your website going down because one of your MongoDB instances
+fell over?
+
+http://4.bp.blogspot.com/_OjAOXsxFtlY/RYNE_K3-JPI/AAAAAAAAAAk/EUkvasLDo0c/s320/Picture+1.png
+
+Weebl stops things falling over. Or rather, it lets you cope with things falling
+over in a sensible way. Right now it just contains a Mongo wrapper but it's set up
+in such a way that adding other service wrappers is a snap.
+
+
+== Weebl::Mongo
+
+The Mongo client is instantiated using a list of hosts and a retry strategy:
+
+  hosts  = [['mongo1.example.com', 28017], ['mongo2.example.com', 28017]]
+  client = Weebl::Mongo.new(:hosts => hosts, :retry => :periodic)
+
+Available <tt>:retry</tt> options are:
+
+* <tt>:none</tt>: if any Mongo operation fails an exception is thrown and the client
+  begins switching to an alternate host.
+* <tt>:periodic</tt>: Mongo operations are retried at a uniform rate until a
+  connection to one of the hosts is established.
+
+You use it by wrapping blocks of code that use Mongo in a block:
+
+  client.with_connection do |conn|
+    collection = conn.db('mmm').collection('pie')
+    document = collection.find_one
+    # etc
+  end
+
+This block may throw an exception, depending the retry strategy in use. Beware
+that if Mongo goes down part-way through the execution of the block, the block
+may be retried from the start when Mongo comes back. Make sure you don't insert
+things twice etc.
+
+
+== Adding new clients
+
+The API required by Weebl is very simple. You just need to declare how to get
+a connection, what type of exception the underlying client will throw if
+it's disconnected, and what to do if the connection fails. For example the
+Mongo one looks something like this:
+
+  class Mongo < Weebl::Fallible
+    # How to get a connection. Should return a connection object or
+    # nil, and should not raise any exceptions
+    def get_connection
+      hosts.each do |host|
+        @connection ||= make_connection(host)
+      end
+      @connection
+    end
+    
+    # What type of exception the underlying client throws. Used to
+    # Detect failures during blocks of code with #with_connection
+    def exception_type
+      ::Mongo::ConnectionFailure
+    end
+    
+    # What to do when the connection drops, e.g. throw the object away
+    def on_fail(exception)
+      @connection = nil
+    end
+    
+  private
+    
+    def make_connection(host)
+      ::Mongo::Connection.new(host[0].to_s, host[1].to_i)
+    rescue exception_type
+      nil
+    end
+  end
+
+The options passed in the constructor become available as method calls inside
+your class, e.g. <tt>:hosts</tt> in the above example.
+
