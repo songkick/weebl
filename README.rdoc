@@ -78,3 +78,8 @@ Mongo one looks something like this:
 The options passed in the constructor become available as method calls inside
 your class, e.g. <tt>:hosts</tt> in the above example.
 
+
+== Copyright
+
+Copyright (c) 2010 Songkick.com
+

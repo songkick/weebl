@@ -1,6 +1,8 @@
 require 'rubygems'
 
 module Weebl
+  VERSION = '0.1.0'
+  
   class NotAvailable < StandardError; end
   
   ROOT = File.expand_path(File.dirname(__FILE__))
