@@ -11,15 +11,26 @@ module Weebl
     def initialize(fallible)
       @fallible = fallible
     end
+    
+    def fail(exception = nil)
+      @fallible.on_fail(exception)
+      @fallible.trigger(:fail, exception)
+    end
   end
   
   class Strategy::None < Strategy
     def run(&task)
       connection = @fallible.get_connection
-      raise NotAvailable.new unless connection
+      
+      unless connection
+        fail
+        raise NotAvailable.new 
+      end
+      
       task.call(connection)
+      
     rescue @fallible.exception_type => e
-      @fallible.on_fail(e)
+      fail(e)
       raise NotAvailable.new
     end
   end
@@ -45,8 +56,11 @@ module Weebl
         begin
           result = block.call
           complete = true
+          
+          fail if expectation == :result and result.nil?
+          
         rescue @fallible.exception_type => e
-          @fallible.on_fail(e)
+          fail(e)
         end
         sleep(INTERVAL) unless done[]
       end

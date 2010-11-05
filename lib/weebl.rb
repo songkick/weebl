@@ -1,7 +1,7 @@
 require 'rubygems'
 
 module Weebl
-  VERSION = '0.1.1'
+  VERSION = '0.1.2'
   
   class NotAvailable < StandardError; end
   

@@ -2,8 +2,9 @@ module Weebl
   
   class Fallible
     def initialize(options)
-      @options  = options
-      @strategy = Strategy[@options[:retry]].new(self)
+      @options   = options
+      @strategy  = Strategy[@options[:retry]].new(self)
+      @listeners = Hash.new { |h,k| h[k] = [] }
     end
     
     def with_connection(&task)
@@ -11,6 +12,17 @@ module Weebl
     end
     
     def on_fail
+    end
+    
+    def on(event_type, &block)
+      @listeners[event_type] << block
+    end
+    
+    def trigger(event_type, data)
+      return unless @listeners.has_key?(event_type)
+      @listeners[event_type].each do |listener|
+        listener.call(data)
+      end
     end
     
   private

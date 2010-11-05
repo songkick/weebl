@@ -15,6 +15,24 @@ describe Weebl::Mongo do
           client.with_connection { |conn| conn.db('test') }
         }.should raise_error(Weebl::NotAvailable)
       end
+      
+      it "notifies the client" do
+        client.should_receive(:on_fail)
+        begin
+          client.with_connection { conn.db('test') }
+        rescue
+        end
+      end
+      
+      it "makes the client notify listeners" do
+        notified = false
+        client.on(:fail) { notified = true }
+        begin
+          client.with_connection { }
+        rescue
+        end
+        notified.should be_true
+      end
     end
     
     context "when there's Mongo pair up" do
@@ -46,6 +64,9 @@ describe Weebl::Mongo do
         end
         
         it "fails on the next read, then continues reading from the other host" do
+          notified = false
+          client.on(:fail) { notified = true }
+          
           lambda {
             client.with_connection { |conn| conn.db('test')['test_set'].find_one }
           }.should raise_error(Weebl::NotAvailable)
@@ -55,6 +76,7 @@ describe Weebl::Mongo do
             collection.find_one['hello'].should == 'world'
             @master_connection_port.should_not == conn.port
           end
+          notified.should be_true
         end
       end
       
@@ -119,11 +141,16 @@ describe Weebl::Mongo do
       end
       
       it "blocks until Mongo comes up" do
+        notified = false
+        client.on(:fail) { notified = true }
+        
         client.with_connection do |conn|
           conn.db('test').should_not be_nil
           @elapsed = Time.now - @start_time
         end
+        
         @elapsed.should > 20
+        notified.should be_true
       end
     end
     
